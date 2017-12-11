@@ -22,6 +22,7 @@ volatile unsigned long last_micros;
 unsigned int sample;
 volatile byte mode = 0;
 unsigned int lowBound = 100;
+int lastNumLights = 0;
 
 // color schemes
 uint32_t listColors[] = {red, orange, yellow, green, blue, purple, white};
@@ -45,18 +46,19 @@ void setup()
 
 void loop()
 {
+  // stabilize light flicker
   brightness = analogRead(PotPin);
   if (brightness != pastBrightness) {
     uint16_t level = uint16_t(map(brightness,0,1023,0, 100));
     pixels.setBrightness(level);
   }
+  
   if(mode==0) {
-    SoundReactiveSparkle(10);
-    //SoundReactiveColor(10);
+    lastNumLights = SoundReactiveReverse(10, lastNumLights);
   } else if(mode==1) {
     SnakeReverse(15);
   } else if(mode==2) {
-    SoundReactiveReverse(10);
+    SoundReactiveSparkle(10);
   } else if(mode==3) {
     rainbow(10);
   } else if(mode==4) {
@@ -205,15 +207,24 @@ void SoundReactive(int wait) {
   delay(wait);
 }
 
-void SoundReactiveReverse(int wait) {
+int SoundReactiveReverse(int wait, int lastLights) {
   int maxSound = 1024;
   int peakToPeak = getPeakToPeak();
+  int halfLights = pixels.numPixels() / 2;
+  int numToLight;
 
   if (peakToPeak > lowBound) {
-    int halfLights = pixels.numPixels() / 2;
     float divisor = float((maxSound - lowBound) / halfLights);
-    int numToLight = int((peakToPeak - lowBound) / divisor);
-    
+    numToLight = int((peakToPeak - lowBound) / divisor);
+  } else {
+    numToLight = 0;
+  }
+
+  if (numToLight < lastLights) {
+    numToLight = lastLights - 2;
+  }
+  
+  if (numToLight > 0)  {
     for (int i = halfLights; i >= (halfLights - numToLight); i--) {
       pixels.setPixelColor(i,listColors[random(7)]);
       pixels.setPixelColor(pixels.numPixels()-1-i,listColors[random(7)]);
@@ -231,6 +242,7 @@ void SoundReactiveReverse(int wait) {
     allSet(blank);
   }    
   delay(wait);
+  return numToLight;
 }
 
 void SoundReactiveBrightness(int wait) {
