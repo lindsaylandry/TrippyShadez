@@ -8,11 +8,12 @@
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(58, NeopixelPin);
   
 uint32_t red = pixels.Color(255,0,0);
-uint32_t orange = pixels.Color(255,50,0);
+uint32_t orange = pixels.Color(255,65,0);
 uint32_t yellow = pixels.Color(255,215,0);
 uint32_t green = pixels.Color(0,255,0);
 uint32_t blue = pixels.Color(0,0,255);
 uint32_t purple = pixels.Color(255,0,200);
+uint32_t pink = pixels.Color(255,0,80);
 uint32_t white = pixels.Color(255,255,255);
 uint32_t blank = pixels.Color(0,0,0);
 int brightness = 0;
@@ -26,6 +27,7 @@ int lastNumLights = 0;
 
 // color schemes
 uint32_t listColors[] = {red, orange, yellow, green, blue, purple, white};
+uint32_t rainbowColors[] = {red, orange, yellow, green, blue, purple, pink};
 uint32_t holidayColors[] = {red, green};
 uint32_t winterColors[] = {blue, purple, white};
 uint32_t warmColors[] = {red, orange, yellow};
@@ -42,6 +44,7 @@ void setup()
   pinMode(ButtonPin, INPUT_PULLUP);
   
   attachInterrupt(1, debounceInterrupt, FALLING); //Trinket
+  randomSeed(analogRead(0));
 }
 
 void loop()
@@ -54,7 +57,11 @@ void loop()
   }
   
   if(mode==0) {
-    lastNumLights = SoundReactiveReverse(10, lastNumLights);
+    //lastNumLights = SoundReactiveReverse(10, lastNumLights);
+    SoundReactiveFillRight(5, 80);
+    //FillRight(10);
+    //SoundReactiveSparkle(10);
+    //SparklePulse(5);
   } else if(mode==1) {
     SnakeReverse(15);
   } else if(mode==2) {
@@ -62,14 +69,12 @@ void loop()
   } else if(mode==3) {
     rainbow(10);
   } else if(mode==4) {
-    SoundReactiveBrightness(10);
-  } else if(mode==5) {
     CylonBounce(6, 30, 50);
-  } else if(mode==6) {
+  } else if(mode==5) {
     Sparkle(10, 30);
-  } else if (mode==7) {
+  } else if (mode==6) {
     StrangerThings(30, 100);
-  } else if (mode==8) {
+  } else if (mode==7) {
     Fire(55,120,15);
   } else if(mode==-1) {
     TheaterChaseRainbow(100);
@@ -326,6 +331,100 @@ void SoundReactiveSparkle(int wait) {
   }
 }
 
+void SparklePulse(int wait) {
+  allSet(blank);
+  int isOn[pixels.numPixels()] = {0};
+
+  // slowly turn all lights on
+  for (int i = 0; i < pixels.numPixels(); i++) {
+    bool litLight = false;
+    while (litLight == false) {
+      int turnOn = random(pixels.numPixels());
+      if (isOn[turnOn] == 0) {
+        pixels.setPixelColor(turnOn,rainbowColors[random(7)]);
+        isOn[turnOn] = 1;
+        litLight = true;
+      }
+    }
+    pixels.show();
+    delay(wait);
+  }
+
+  delay(wait*3);
+  // slowly turn all lights off
+  // slowly turn all lights on
+  for (int i = 0; i < pixels.numPixels(); i++) {
+    bool litLight = true;
+    while (litLight == true) {
+      int turnOff = random(pixels.numPixels());
+      if (isOn[turnOff] == 1) {
+        pixels.setPixelColor(turnOff, blank);
+        isOn[turnOff] = 0;
+        litLight = false;
+      }
+    }
+    pixels.show();
+    delay(wait);
+  }
+  delay(wait*3);
+}
+
+void SoundReactiveFillRight(int minWait, int maxWait) {
+  int maxSound = 1024;
+  int peakToPeak = getPeakToPeak();
+
+  allSet(blank);
+  int lit = pixels.numPixels();
+  for (int i = 0; i < pixels.numPixels(); i++) {
+    uint32_t color = rainbowColors[random(7)];
+    // send pixel from one side to other
+    for (int j = 0; j < lit; j++) {
+      pixels.setPixelColor(j, color);
+      
+      // set all other pixels blank (except ones already filled)
+      if (j > 0) {
+        for(int k = 0; k < j; k++) {
+          pixels.setPixelColor(k, blank);
+        }
+      }
+      for(int k = j+1; k < lit; k++) {
+        pixels.setPixelColor(k, blank);
+      }
+      pixels.show();
+      delay(getSoundDelay(minWait, maxWait));
+    }
+    delay(getSoundDelay(minWait, maxWait));
+    lit--;
+  }
+}
+
+void FillRight(int wait) {
+  allSet(blank);
+  int lit = pixels.numPixels();
+
+  for (int i = 0; i < pixels.numPixels(); i++) {
+    uint32_t color = rainbowColors[random(7)];
+    // send pixel from one side to other
+    for (int j = 0; j < lit; j++) {
+      pixels.setPixelColor(j, color);
+      
+      // set all other pixels blank (except ones already filled)
+      if (j > 0) {
+        for(int k = 0; k < j; k++) {
+          pixels.setPixelColor(k, blank);
+        }
+      }
+      for(int k = j+1; k < lit; k++) {
+        pixels.setPixelColor(k, blank);
+      }
+      pixels.show();
+      delay(wait);
+    }
+    delay(wait);
+    lit--;
+  }
+}
+
 void CylonBounce(int EyeSize, int SpeedDelay, int ReturnDelay){
   int number = 0;
   // forward
@@ -377,8 +476,7 @@ void CylonBounce(int EyeSize, int SpeedDelay, int ReturnDelay){
 
 void allSet(uint32_t c)
 {
-  for(int i=0;i<pixels.numPixels();i++)
-  {
+  for(int i=0;i<pixels.numPixels();i++) {
     pixels.setPixelColor(i,c);
   }
   pixels.show();
@@ -387,15 +485,13 @@ void allSet(uint32_t c)
 void travellingDot()
 {
   int number = 0;
-  for(int i=0; i<pixels.numPixels(); i++)
-  {
+  for(int i=0; i<pixels.numPixels(); i++) {
     pixels.setPixelColor(i,listColors[random(7)]);
     pixels.show();
     delay(30);
     allSet(blank);
   }
-  for(int j=pixels.numPixels()-1; j>=0; j--)
-  {
+  for(int j=pixels.numPixels()-1; j>=0; j--) {
     pixels.setPixelColor(j,listColors[random(7)]);
     pixels.show();
     delay(30);
@@ -413,6 +509,20 @@ void debounceInterrupt() {
 
 void Interrupt() {
   mode++;
+}
+
+int getSoundDelay(int minWait, int maxWait) {
+  int maxSound = 1024;
+  int peakToPeak = getPeakToPeak();
+  int wait;
+
+  if (peakToPeak > lowBound) {
+    float multiplier = float((peakToPeak - lowBound) / (maxSound - lowBound));
+    wait = maxWait - int((maxWait) * multiplier) + minWait;
+  } else {
+    wait = maxWait;
+  }
+  return wait;
 }
 
 void Fire(int Cooling, int Sparking, int SpeedDelay) {
