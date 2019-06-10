@@ -57,13 +57,12 @@ void loop()
   }
   
   if(mode==0) {
-    //lastNumLights = SoundReactiveReverse(10, lastNumLights);
-    SoundReactiveFillRight(5, 80);
-    //FillRight(10);
-    //SoundReactiveSparkle(10);
-    //SparklePulse(5);
+    lastNumLights = SoundReactiveOneWay(10, lastNumLights);
+    //SoundReactiveFillRight(5, 80);
+  } else if(mode==9) {
+    lastNumLights = SoundReactiveReverse(10, lastNumLights);
   } else if(mode==1) {
-    SnakeReverse(15);
+    SparklePulse(5);
   } else if(mode==2) {
     SoundReactiveSparkle(10);
   } else if(mode==3) {
@@ -75,6 +74,8 @@ void loop()
   } else if (mode==6) {
     StrangerThings(30, 100);
   } else if (mode==7) {
+    FillRight(10);
+  } else if (mode==8) {
     Fire(55,120,15);
   } else if(mode==-1) {
     TheaterChaseRainbow(100);
@@ -248,6 +249,57 @@ int SoundReactiveReverse(int wait, int lastLights) {
   }    
   delay(wait);
   return numToLight;
+}
+
+int SoundReactiveOneWay(int wait, int lastLights) {
+  int maxSound = 1024;
+  int peakToPeak = getPeakToPeak();
+  int lights = pixels.numPixels();
+  int numToLight;
+
+  if (peakToPeak > lowBound) {
+    float divisor = float((maxSound - lowBound) / lights);
+    numToLight = int((peakToPeak - lowBound) / divisor);
+  } else {
+    numToLight = 0;
+  }
+
+  if (numToLight < lastLights) {
+    lastLights = lastLights - 1;
+  } else {
+    lastLights = numToLight;
+  }
+  
+  if (numToLight > 0)  {
+    for (int i = 0; i < (numToLight - 1); i++) {
+      pixels.setPixelColor(i,listColors[random(7)]);
+    }
+
+    if ((lights - numToLight) > 0) {
+      for (int i = numToLight; i < lights; i++) {
+        pixels.setPixelColor(i,blank);
+      }
+    }
+    pixels.setPixelColor(lastLights, white);
+    
+    pixels.show();
+  } else {
+    if (lastLights > 0) {
+      for (int i = 0; i < lastLights; i++) {
+        pixels.setPixelColor(i, blank);
+      }
+      pixels.setPixelColor(lastLights, white);
+
+      for (int i = (lastLights+1); i < lights; i++) {
+        pixels.setPixelColor(i, blank);
+      }
+      pixels.show();
+    } else {
+      allSet(blank);
+    }
+  }    
+  delay(wait);
+  return lastLights;
 }
 
 void SoundReactiveBrightness(int wait) {
@@ -518,7 +570,7 @@ int getSoundDelay(int minWait, int maxWait) {
 
   if (peakToPeak > lowBound) {
     float multiplier = float((peakToPeak - lowBound) / (maxSound - lowBound));
-    wait = maxWait - int((maxWait) * multiplier) + minWait;
+    wait = maxWait - int(maxWait * multiplier) + minWait;
   } else {
     wait = maxWait;
   }
